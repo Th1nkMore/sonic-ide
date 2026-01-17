@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appTitle": "Sonic IDE",
+    "appDescription": "A personal music portfolio that feels like a code editor."
+  },
+  "fileExplorer": {
+    "title": "Sonic IDE",
+    "playlists": "PLAYLISTS",
+    "tracks": "TRACKS",
+    "favorites": "favorites.m3u",
+    "lofiWorkspace": "lofi_workspace.m3u",
+    "midnightRefactor": "midnight-refactor.mp3",
+    "compileStars": "compile-the-stars.mp3",
+    "selectPlaylist": "Select playlist",
+    "selectTrack": "Select track",
+    "runtimeQueue": "RUNTIME QUEUE",
+    "repoName": "TH1NKMORE_REPO",
+    "play": "Play",
+    "addToQueue": "Add to Queue",
+    "copyLink": "Copy Link",
+    "properties": "Properties",
+    "noSongsInQueue": "No songs in queue"
+  },
+  "codeEditor": {
+    "filePath": "lyrics/midnight-refactor.lyr",
+    "trackComment": "// track: midnight-refactor",
+    "artistComment": "// artist: sonic-ide"
+  },
+  "inspector": {
+    "title": "Inspector",
+    "track": "Track",
+    "metadata": "Metadata",
+    "waveform": "Waveform",
+    "midnightRefactorFile": "midnight-refactor.mp3",
+    "bpmKey": "bpm: 92 • key: D minor",
+    "linesSections": "Lines: 64 • Sections: intro, verse, chorus, bridge",
+    "properties": "Properties",
+    "info": "Info",
+    "titleLabel": "Title:",
+    "artistLabel": "Artist:",
+    "albumLabel": "Album:",
+    "languageLabel": "Language:",
+    "noFileSelected": "No file selected"
+  },
+  "terminal": {
+    "play": "Play",
+    "pause": "Pause",
+    "nowPlaying": "now playing: midnight-refactor.mp3",
+    "paused": "paused",
+    "playerStatus": "$ player status",
+    "streamOk": "OK  :: stream attached :: buffer stable :: cpu 3% :: latency 12ms",
+    "streamIdle": "IDLE :: awaiting next track :: type `play` to resume transport",
+    "volume": "Volume",
+    "volumeLabel": "Volume control",
+    "playOrder": {
+      "sequential": "Sequential playback",
+      "shuffle": "Shuffle playback",
+      "repeat": "Repeat all",
+      "repeat-one": "Repeat one"
+    },
+    "output": "OUTPUT",
+    "terminal": "TERMINAL",
+    "debugConsole": "DEBUG CONSOLE"
+  },
+  "switcher": {
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "switchLanguage": "Switch language",
+    "switchTheme": "Switch theme"
+  },
+  "loading": {
+    "bootingSystem": "Booting System...",
+    "loadingPlaylist": "Loading playlist..."
+  }
+}

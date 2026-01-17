@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appTitle": "Sonic IDE",
+    "appDescription": "一个像代码编辑器一样的个人音乐作品集。"
+  },
+  "fileExplorer": {
+    "title": "Sonic IDE",
+    "playlists": "播放列表",
+    "tracks": "曲目",
+    "favorites": "favorites.m3u",
+    "lofiWorkspace": "lofi_workspace.m3u",
+    "midnightRefactor": "midnight-refactor.mp3",
+    "compileStars": "compile-the-stars.mp3",
+    "selectPlaylist": "选择播放列表",
+    "selectTrack": "选择曲目",
+    "runtimeQueue": "运行时队列",
+    "repoName": "TH1NKMORE_REPO",
+    "play": "播放",
+    "addToQueue": "添加到队列",
+    "copyLink": "复制链接",
+    "properties": "属性",
+    "noSongsInQueue": "队列中没有歌曲"
+  },
+  "codeEditor": {
+    "filePath": "lyrics/midnight-refactor.lyr",
+    "trackComment": "// track: midnight-refactor",
+    "artistComment": "// artist: sonic-ide"
+  },
+  "inspector": {
+    "title": "检查器",
+    "track": "曲目",
+    "metadata": "元数据",
+    "waveform": "波形",
+    "midnightRefactorFile": "midnight-refactor.mp3",
+    "bpmKey": "bpm: 92 • 调: D 小调",
+    "linesSections": "行数: 64 • 段落: 前奏, 主歌, 副歌, 桥段",
+    "properties": "属性",
+    "info": "信息",
+    "titleLabel": "标题:",
+    "artistLabel": "艺术家:",
+    "albumLabel": "专辑:",
+    "languageLabel": "语言:",
+    "noFileSelected": "未选择文件"
+  },
+  "terminal": {
+    "play": "播放",
+    "pause": "暂停",
+    "nowPlaying": "正在播放: midnight-refactor.mp3",
+    "paused": "已暂停",
+    "playerStatus": "$ player status",
+    "streamOk": "正常  :: 流已连接 :: 缓冲区稳定 :: CPU 3% :: 延迟 12ms",
+    "streamIdle": "空闲  :: 等待下一首曲目 :: 输入 `play` 恢复播放",
+    "volume": "音量",
+    "volumeLabel": "音量控制",
+    "playOrder": {
+      "sequential": "顺序播放",
+      "shuffle": "随机播放",
+      "repeat": "重复全部",
+      "repeat-one": "单曲循环"
+    },
+    "output": "输出",
+    "terminal": "终端",
+    "debugConsole": "调试控制台"
+  },
+  "switcher": {
+    "language": "语言",
+    "theme": "主题",
+    "light": "浅色",
+    "dark": "深色",
+    "switchLanguage": "切换语言",
+    "switchTheme": "切换主题"
+  },
+  "loading": {
+    "bootingSystem": "系统启动中...",
+    "loadingPlaylist": "加载播放列表..."
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appTitle": "Sonic IDE",
+    "appDescription": "コードエディタのような音楽ポートフォリオサイトです。"
+  },
+  "fileExplorer": {
+    "title": "Sonic IDE",
+    "playlists": "プレイリスト",
+    "tracks": "トラック",
+    "favorites": "favorites.m3u",
+    "lofiWorkspace": "lofi_workspace.m3u",
+    "midnightRefactor": "midnight-refactor.mp3",
+    "compileStars": "compile-the-stars.mp3",
+    "selectPlaylist": "プレイリストを選択",
+    "selectTrack": "トラックを選択",
+    "runtimeQueue": "ランタイムキュー",
+    "repoName": "TH1NKMORE_REPO",
+    "play": "再生",
+    "addToQueue": "キューに追加",
+    "copyLink": "リンクをコピー",
+    "properties": "プロパティ",
+    "noSongsInQueue": "キューに曲がありません"
+  },
+  "codeEditor": {
+    "filePath": "lyrics/midnight-refactor.lyr",
+    "trackComment": "// track: midnight-refactor",
+    "artistComment": "// artist: sonic-ide"
+  },
+  "inspector": {
+    "title": "インスペクター",
+    "track": "トラック",
+    "metadata": "メタデータ",
+    "waveform": "波形",
+    "midnightRefactorFile": "midnight-refactor.mp3",
+    "bpmKey": "bpm: 92 • キー: D マイナー",
+    "linesSections": "行数: 64 • セクション: イントロ, バース, コーラス, ブリッジ",
+    "properties": "プロパティ",
+    "info": "情報",
+    "titleLabel": "タイトル:",
+    "artistLabel": "アーティスト:",
+    "albumLabel": "アルバム:",
+    "languageLabel": "言語:",
+    "noFileSelected": "ファイルが選択されていません"
+  },
+  "terminal": {
+    "play": "再生",
+    "pause": "一時停止",
+    "nowPlaying": "再生中: midnight-refactor.mp3",
+    "paused": "一時停止中",
+    "playerStatus": "$ player status",
+    "streamOk": "正常  :: ストリーム接続済み :: バッファー安定 :: CPU 3% :: レイテンシ 12ms",
+    "streamIdle": "待機中  :: 次のトラックを待機中 :: `play` と入力して再生を再開",
+    "volume": "音量",
+    "volumeLabel": "音量コントロール",
+    "playOrder": {
+      "sequential": "順次再生",
+      "shuffle": "シャッフル再生",
+      "repeat": "すべてリピート",
+      "repeat-one": "1曲リピート"
+    },
+    "output": "出力",
+    "terminal": "ターミナル",
+    "debugConsole": "デバッグコンソール"
+  },
+  "switcher": {
+    "language": "言語",
+    "theme": "テーマ",
+    "light": "ライト",
+    "dark": "ダーク",
+    "switchLanguage": "言語を切り替え",
+    "switchTheme": "テーマを切り替え"
+  },
+  "loading": {
+    "bootingSystem": "システム起動中...",
+    "loadingPlaylist": "プレイリストを読み込み中..."
+  }
+}

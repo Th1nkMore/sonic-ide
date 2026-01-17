@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appTitle": "Sonic IDE",
+    "appDescription": "Ein persönliches Musik-Portfolio, das sich wie ein Code-Editor anfühlt."
+  },
+  "fileExplorer": {
+    "title": "Sonic IDE",
+    "playlists": "Wiedergabelisten",
+    "tracks": "Titel",
+    "favorites": "favorites.m3u",
+    "lofiWorkspace": "lofi_workspace.m3u",
+    "midnightRefactor": "midnight-refactor.mp3",
+    "compileStars": "compile-the-stars.mp3",
+    "selectPlaylist": "Wiedergabeliste auswählen",
+    "selectTrack": "Titel auswählen",
+    "runtimeQueue": "LAUFZEIT-WARTESCHLANGE",
+    "repoName": "TH1NKMORE_REPO",
+    "play": "Wiedergabe",
+    "addToQueue": "Zur Warteschlange hinzufügen",
+    "copyLink": "Link kopieren",
+    "properties": "Eigenschaften",
+    "noSongsInQueue": "Keine Titel in der Warteschlange"
+  },
+  "codeEditor": {
+    "filePath": "lyrics/midnight-refactor.lyr",
+    "trackComment": "// track: midnight-refactor",
+    "artistComment": "// artist: sonic-ide"
+  },
+  "inspector": {
+    "title": "Inspektor",
+    "track": "Titel",
+    "metadata": "Metadaten",
+    "waveform": "Wellenform",
+    "midnightRefactorFile": "midnight-refactor.mp3",
+    "bpmKey": "bpm: 92 • Tonart: D-Moll",
+    "linesSections": "Zeilen: 64 • Abschnitte: Intro, Strophe, Refrain, Bridge",
+    "properties": "Eigenschaften",
+    "info": "Info",
+    "titleLabel": "Titel:",
+    "artistLabel": "Künstler:",
+    "albumLabel": "Album:",
+    "languageLabel": "Sprache:",
+    "noFileSelected": "Keine Datei ausgewählt"
+  },
+  "terminal": {
+    "play": "Wiedergabe",
+    "pause": "Pause",
+    "nowPlaying": "wird abgespielt: midnight-refactor.mp3",
+    "paused": "pausiert",
+    "playerStatus": "$ player status",
+    "streamOk": "OK  :: Stream verbunden :: Puffer stabil :: CPU 3% :: Latenz 12ms",
+    "streamIdle": "LEERLAUF  :: warte auf nächsten Titel :: `play` eingeben, um Wiedergabe fortzusetzen",
+    "volume": "Lautstärke",
+    "volumeLabel": "Lautstärkeregelung",
+    "playOrder": {
+      "sequential": "Sequenzielle Wiedergabe",
+      "shuffle": "Zufällige Wiedergabe",
+      "repeat": "Alle wiederholen",
+      "repeat-one": "Einen Titel wiederholen"
+    },
+    "output": "AUSGABE",
+    "terminal": "TERMINAL",
+    "debugConsole": "DEBUG-KONSOLE"
+  },
+  "switcher": {
+    "language": "Sprache",
+    "theme": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "switchLanguage": "Sprache wechseln",
+    "switchTheme": "Design wechseln"
+  },
+  "loading": {
+    "bootingSystem": "System startet...",
+    "loadingPlaylist": "Wiedergabeliste wird geladen..."
+  }
+}
