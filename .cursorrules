@@ -1,0 +1,316 @@
+# Sonic IDE - Cursor Rules
+
+## Project Overview
+Sonic IDE is a personal music portfolio website styled as a Code Editor (IDE). This file serves as the "Constitution" for all AI-generated code, ensuring consistency, best practices, and adherence to our specific tech stack.
+
+---
+
+## 1. Tech Stack & Versioning (STRICT)
+
+### Framework & Language
+- **Next.js 16**: Always use App Router patterns. Server Components are the default.
+- **React 19**: Use React 19 features where appropriate (e.g., `use`, Actions, Server Actions).
+- **TypeScript 5.x**: Strict mode enabled. Always type props, return types, and state.
+- **Tailwind CSS v4**: Use CSS-first configuration approach. Do NOT create `tailwind.config.js` unless absolutely necessary for v4 compatibility.
+  - Use `@import "tailwindcss"` in CSS files.
+  - Leverage `@theme inline` for custom theme variables.
+- **Package Manager**: Always use `pnpm`. Never suggest `npm` or `yarn` commands.
+
+### Tooling
+- **Biome**: Use Biome for linting and formatting. NEVER suggest ESLint or Prettier.
+  - Scripts: `pnpm lint` and `pnpm format`.
+  - Indent: 2 spaces, space style.
+- **shadcn/ui**: Prioritize shadcn/ui components. Use `new-york` style, `slate` base color.
+- **Icons**: Use `lucide-react` exclusively. Verify icon names exist before using.
+
+---
+
+## 2. Internationalization (i18n) - CRITICAL
+
+### Library & Setup
+- **Library**: MUST use `next-intl` for all internationalization.
+- **Supported Languages**: English (`en`), Chinese (`zh`), Japanese (`ja`), German (`de`).
+
+### File Structure
+```
+src/
+├── app/
+│   └── [locale]/          # ALL routes must be inside [locale]
+│       ├── page.tsx
+│       └── layout.tsx
+└── messages/
+    ├── en.json
+    ├── zh.json
+    ├── ja.json
+    └── de.json
+```
+
+### Implementation Rules
+- **NEVER hardcode text** in components. All user-facing strings must come from translation files.
+- **Server Components**: Use `getTranslations('namespace')` from `next-intl`.
+- **Client Components**: Use `useTranslations('namespace')` hook from `next-intl`.
+- **Route Structure**: All page routes MUST be inside `[locale]` dynamic segment.
+- **Dictionary Files**: Store in `src/messages/{locale}.json` with nested namespaces.
+- **Example**:
+  ```tsx
+  // Server Component
+  import { getTranslations } from 'next-intl/server';
+  
+  export default async function Page() {
+    const t = await getTranslations('common');
+    return <h1>{t('title')}</h1>;
+  }
+  
+  // Client Component
+  'use client';
+  import { useTranslations } from 'next-intl';
+  
+  export function Button() {
+    const t = useTranslations('ui');
+    return <button>{t('submit')}</button>;
+  }
+  ```
+
+---
+
+## 3. Theming (Light/Dark Mode)
+
+### Library
+- **Library**: MUST use `next-themes` for theme management.
+
+### Implementation
+- **ThemeProvider**: Wrap root layout with `ThemeProvider` from `next-themes`.
+- **CSS Variables**: All colors MUST use CSS variables from shadcn/ui (e.g., `bg-background`, `text-foreground`, `border-border`).
+- **No Hardcoded Colors**: NEVER use hardcoded hex values in Tailwind classes.
+  - ❌ `bg-white`, `text-black`, `bg-[#000000]`
+  - ✅ `bg-background`, `text-foreground`, `bg-card`
+- **Theme Switching**: Support instant theme switching via CSS variables.
+- **Default Theme**: Dark mode is the default theme.
+
+### Example
+```tsx
+// layout.tsx
+import { ThemeProvider } from '@/components/theme-provider';
+
+export default function RootLayout({ children }) {
+  return (
+    <html suppressHydrationWarning>
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+---
+
+## 4. Component Architecture
+
+### "use client" Strategy
+- **Default**: All components are Server Components by default.
+- **When to use "use client"**: Only add `"use client"` directive at the top of leaf components that strictly need:
+  - React hooks (`useState`, `useEffect`, `useCallback`, etc.)
+  - Event listeners (`onClick`, `onChange`, etc.)
+  - Browser APIs (`window`, `document`, etc.)
+  - Context consumers (if not using Server Components)
+- **Avoid**: Do NOT add `"use client"` to layout components or intermediate wrapper components unless absolutely necessary.
+- **Pattern**: Keep Server Components at the top level, pass data down to Client Components as props.
+
+### Naming Conventions
+- **Components**: PascalCase (e.g., `FileExplorer.tsx`, `CodeEditor.tsx`).
+- **Directories/Files**: kebab-case (e.g., `file-explorer.tsx`, `code-editor.tsx`).
+- **Exception**: App Router special files use their exact names (`layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`).
+
+### Component Organization
+```
+src/
+├── app/
+│   └── [locale]/
+│       ├── layout.tsx
+│       └── page.tsx
+├── components/
+│   ├── ui/              # shadcn/ui components
+│   ├── layout/           # Layout components
+│   └── ...               # Feature components
+├── lib/
+│   └── utils.ts          # Utility functions (cn, etc.)
+├── store/
+│   └── usePlayerStore.ts # Zustand stores
+└── messages/
+    └── {locale}.json     # Translation files
+```
+
+### Shadcn/ui Usage
+- **Priority**: Always check if a shadcn/ui component exists before creating custom UI.
+- **Installation**: Use `pnpm dlx shadcn@latest add [component]` to add new components.
+- **Customization**: Extend shadcn/ui components via `className` prop and CSS variables.
+
+---
+
+## 5. Data Fetching & State Management
+
+### State Management
+- **Zustand**: Use Zustand for global client state (e.g., player status, volume, current track).
+- **Server Components**: Use Server Components for fetching initial data (song lists, metadata).
+- **Server Actions**: Use React 19 Server Actions for mutations when appropriate.
+
+### Data Fetching Patterns
+- **Server Components**: Fetch data directly in Server Components using `async/await`.
+- **Client Components**: Use Zustand stores for reactive client-side state.
+- **Avoid**: Do NOT use `useEffect` for data fetching. Use Server Components or Server Actions instead.
+
+### Example
+```tsx
+// Server Component - Fetch data
+export default async function SongList() {
+  const songs = await fetchSongs();
+  return <SongListClient songs={songs} />;
+}
+
+// Client Component - Manage interactive state
+'use client';
+import { usePlayerStore } from '@/store/usePlayerStore';
+
+export function SongListClient({ songs }) {
+  const { setCurrentTrack } = usePlayerStore();
+  return <div>{/* render songs */}</div>;
+}
+```
+
+---
+
+## 6. Accessibility (a11y) - REQUIRED
+
+### Interactive Elements
+- **Buttons/Controls**: All interactive elements without visible text MUST have `aria-label`.
+- **Images**: All images MUST have descriptive `alt` attributes.
+- **Form Elements**: All form inputs MUST have associated `label` elements or `aria-label`.
+
+### Keyboard Navigation
+- **Focus Management**: Preserve keyboard navigation. This is CRITICAL for the IDE feel.
+- **Tab Order**: Ensure logical tab order throughout the application.
+- **Keyboard Shortcuts**: Consider implementing keyboard shortcuts for common actions (e.g., spacebar for play/pause).
+
+### ARIA Attributes
+- **Landmarks**: Use semantic HTML and ARIA landmarks where appropriate.
+- **Roles**: Use proper ARIA roles for custom interactive components.
+- **States**: Announce state changes to screen readers (e.g., `aria-live` regions).
+
+### Example
+```tsx
+<button
+  type="button"
+  aria-label="Play track"
+  onClick={handlePlay}
+>
+  <Play className="h-4 w-4" />
+</button>
+
+<img
+  src="/album-cover.jpg"
+  alt="Album cover for Midnight Refactor by Sonic IDE"
+/>
+```
+
+---
+
+## 7. Code Quality & Best Practices
+
+### TypeScript
+- **Strict Mode**: Always use strict TypeScript. No `any` types unless absolutely necessary.
+- **Type Definitions**: Define types in `src/types/` directory for shared types.
+- **Props**: Always type component props explicitly.
+
+### Performance
+- **Code Splitting**: Leverage Next.js automatic code splitting.
+- **Images**: Use Next.js `Image` component for optimized images.
+- **Fonts**: Use Next.js `next/font` for font optimization.
+
+### Error Handling
+- **Error Boundaries**: Use Next.js `error.tsx` files for error boundaries.
+- **Loading States**: Use `loading.tsx` files for loading states.
+- **Not Found**: Use `not-found.tsx` for 404 pages.
+
+### CSS & Styling
+- **Tailwind Classes**: Use Tailwind utility classes. Avoid inline styles unless necessary for dynamic values.
+- **CSS Variables**: Use CSS variables for theme-aware styling.
+- **Responsive Design**: Use Tailwind responsive prefixes (`sm:`, `md:`, `lg:`, etc.).
+
+---
+
+## 8. File Structure Summary
+
+```
+src/
+├── app/
+│   └── [locale]/
+│       ├── layout.tsx          # Root layout with ThemeProvider
+│       ├── page.tsx            # Home page
+│       ├── loading.tsx         # Loading UI
+│       ├── error.tsx           # Error boundary
+│       └── not-found.tsx       # 404 page
+├── components/
+│   ├── ui/                     # shadcn/ui components
+│   ├── layout/
+│   │   └── MainLayout.tsx      # IDE frame layout
+│   ├── FileExplorer.tsx       # Left sidebar
+│   ├── CodeEditor.tsx          # Center editor
+│   ├── Inspector.tsx           # Right sidebar
+│   ├── TerminalPlayer.tsx     # Bottom terminal
+│   └── theme-provider.tsx      # next-themes wrapper
+├── lib/
+│   └── utils.ts                # Utility functions (cn, etc.)
+├── store/
+│   └── usePlayerStore.ts       # Zustand player store
+├── types/
+│   └── index.ts                # Shared TypeScript types
+└── messages/
+    ├── en.json                 # English translations
+    ├── zh.json                 # Chinese translations
+    ├── ja.json                 # Japanese translations
+    └── de.json                 # German translations
+```
+
+---
+
+## 9. Quick Reference Commands
+
+```bash
+# Development
+pnpm dev
+
+# Build
+pnpm build
+
+# Lint
+pnpm lint
+
+# Format
+pnpm format
+
+# Add shadcn/ui component
+pnpm dlx shadcn@latest add [component]
+
+# Install dependency
+pnpm add [package]
+```
+
+---
+
+## 10. Critical Reminders
+
+1. **NEVER hardcode text** - Always use translations from `next-intl`.
+2. **NEVER use ESLint/Prettier** - Use Biome only.
+3. **NEVER hardcode colors** - Use CSS variables from shadcn/ui.
+4. **NEVER add "use client" unnecessarily** - Default to Server Components.
+5. **ALWAYS use `[locale]` dynamic segment** - All routes must be internationalized.
+6. **ALWAYS provide accessibility attributes** - `aria-label`, `alt`, keyboard navigation.
+7. **ALWAYS use pnpm** - Never suggest npm or yarn.
+
+---
+
+**Last Updated**: 2026-01-27
+**Version**: 1.0.0
