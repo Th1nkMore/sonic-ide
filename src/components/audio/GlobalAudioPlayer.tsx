@@ -153,7 +153,7 @@ export function GlobalAudioPlayer() {
       onpause: () => {
         pauseAction();
       },
-      onerror: (id, error) => {
+      onloaderror: (id, error) => {
         // Error handling - could log to console or error tracking service
       },
     });
