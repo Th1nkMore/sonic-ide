@@ -3,7 +3,9 @@
 import { Menu, Terminal } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import type { PanelImperativeHandle } from "react-resizable-panels";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { GlobalAudioPlayer } from "@/components/audio/GlobalAudioPlayer";
 import { FileExplorer } from "@/components/ide/FileExplorer";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -34,6 +36,9 @@ export function IDEFrame({
 }: IDEFrameProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTerminalOpen, setMobileTerminalOpen] = useState(false);
+  const [terminalVisible, setTerminalVisible] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const terminalPanelRef = useRef<PanelImperativeHandle | null>(null);
   const { getActiveFile, fetchSongs, isLoading } = useIDEStore();
   const activeFile = getActiveFile();
   const t = useTranslations("loading");
@@ -41,6 +46,37 @@ export function IDEFrame({
   useEffect(() => {
     fetchSongs();
   }, [fetchSongs]);
+
+  useEffect(() => {
+    // Only set desktop state on client side to avoid SSR mismatch
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768); // md breakpoint (768px)
+    };
+
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
+
+  const handleToggleTerminal = () => {
+    if (!terminalPanelRef.current) return;
+
+    // Check actual panel state using isCollapsed()
+    if (terminalPanelRef.current.isCollapsed()) {
+      terminalPanelRef.current.expand();
+    } else {
+      terminalPanelRef.current.collapse();
+    }
+  };
+
+  const handleTerminalResize = (
+    panelSize: { asPercentage: number; inPixels: number },
+    _id: string | number | undefined,
+    _prevPanelSize: { asPercentage: number; inPixels: number } | undefined,
+  ) => {
+    // Terminal is considered visible if size is greater than 0
+    setTerminalVisible(panelSize.asPercentage > 0);
+  };
 
   if (isLoading) {
     return (
@@ -62,23 +98,12 @@ export function IDEFrame({
       <GlobalAudioPlayer />
       <div
         className={cn(
-          "grid h-screen w-full overflow-hidden bg-background",
-          // Grid structure: header, content rows, terminal
-          "grid-rows-[auto_1fr_auto]",
-          // Mobile: single column layout
-          "grid-cols-1",
-          // Tablet and up: 3-column layout with flexible sidebar widths
-          "md:grid-cols-[minmax(200px,250px)_1fr_minmax(260px,300px)]",
+          "flex h-screen w-full flex-col overflow-hidden bg-background",
           className,
         )}
       >
-        {/* Header - Spans all columns on all screen sizes */}
-        <header
-          className={cn(
-            "col-span-1 md:col-span-3 row-start-1 row-end-2",
-            "flex items-center justify-between gap-2 border-b border-border bg-sidebar px-4 py-2",
-          )}
-        >
+        {/* Header - Fixed at top */}
+        <header className="flex items-center justify-between gap-2 border-b border-border bg-sidebar px-4 py-2">
           <div className="flex items-center gap-3 md:hidden">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -111,59 +136,116 @@ export function IDEFrame({
             </button>
           </div>
           <div className="flex items-center gap-2">
+            {/* Terminal Toggle Button - Desktop only */}
+            <button
+              type="button"
+              onClick={handleToggleTerminal}
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded border border-border bg-sidebar text-gray-400 hover:bg-gray-800/50 transition-colors"
+              aria-label={terminalVisible ? "Hide terminal" : "Show terminal"}
+              aria-pressed={terminalVisible}
+            >
+              <Terminal className="h-4 w-4" />
+            </button>
             <LanguageSwitcher />
             <ThemeSwitcher />
           </div>
         </header>
 
-        {/* Left Sidebar - Hidden on mobile, visible on desktop */}
-        <aside
-          className={cn(
-            "hidden md:block col-start-1 col-end-2 row-start-2 row-end-3",
-            "border-r border-border bg-sidebar",
-          )}
-        >
-          {leftSidebar}
-        </aside>
+        {/* Mobile Layout - Only render on mobile */}
+        {!isDesktop && (
+          <div className="flex-1 overflow-hidden">
+            <main className="h-full overflow-hidden bg-background">
+              {centerEditor}
+            </main>
+            <Sheet
+              open={mobileTerminalOpen}
+              onOpenChange={setMobileTerminalOpen}
+            >
+              <SheetContent
+                side="bottom"
+                className="h-auto max-h-[40vh] bg-muted border-border p-0"
+              >
+                <SheetTitle className="sr-only">Terminal</SheetTitle>
+                {bottomTerminal}
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
 
-        {/* Center Editor - Spans full width on mobile, middle column on desktop */}
-        <main
-          className={cn(
-            "col-start-1 md:col-start-2 col-end-2 md:col-end-3 row-start-2 row-end-3",
-            "overflow-hidden bg-background md:border-r border-border",
-          )}
-        >
-          {centerEditor}
-        </main>
+        {/* Desktop Layout - Only render on desktop */}
+        {isDesktop && (
+          <Group orientation="horizontal" className="flex-1 overflow-hidden">
+            {/* Left Sidebar */}
+            <Panel
+              defaultSize="20"
+              minSize="15"
+              maxSize="40"
+              className="border-r border-border bg-sidebar overflow-hidden"
+            >
+              {leftSidebar}
+            </Panel>
 
-        {/* Right Inspector - Hidden on mobile, visible on desktop */}
-        <aside
-          className={cn(
-            "hidden md:block col-start-3 col-end-4 row-start-2 row-end-3",
-            "bg-sidebar",
-          )}
-        >
-          {rightInspector}
-        </aside>
+            <Separator className="w-2 min-w-2 bg-transparent hover:bg-border/50 transition-colors cursor-col-resize relative flex items-center justify-center group">
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </Separator>
 
-        {/* Bottom Terminal - Hidden on mobile (shown via Sheet), always visible on desktop */}
-        <div
-          className={cn(
-            "hidden md:block col-span-1 md:col-span-3 row-start-3 row-end-4",
-            "border-t border-border bg-muted",
-          )}
-        >
-          {bottomTerminal}
-        </div>
-        <Sheet open={mobileTerminalOpen} onOpenChange={setMobileTerminalOpen}>
-          <SheetContent
-            side="bottom"
-            className="h-[80vh] bg-muted border-border p-0"
-          >
-            <SheetTitle className="sr-only">Terminal</SheetTitle>
-            {bottomTerminal}
-          </SheetContent>
-        </Sheet>
+            {/* Center Area - Contains Editor and Terminal vertically */}
+            <Panel
+              defaultSize="50"
+              minSize="30"
+              className="flex flex-col overflow-hidden bg-background border-r border-border"
+            >
+              <Group orientation="vertical" className="flex-1">
+                {/* Editor */}
+                <Panel defaultSize="70" minSize="30">
+                  <div className="h-full overflow-hidden">{centerEditor}</div>
+                </Panel>
+
+                {/* Terminal Resize Handle - Always present to maintain layout structure */}
+                <Separator className="h-1 bg-transparent hover:bg-border/50 transition-colors cursor-row-resize relative flex items-center justify-center group">
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </Separator>
+
+                {/* Terminal - Collapsible */}
+                <Panel
+                  panelRef={terminalPanelRef}
+                  defaultSize="30"
+                  minSize="0"
+                  collapsible
+                  onResize={handleTerminalResize}
+                  className="overflow-hidden bg-muted border-t border-border"
+                >
+                  {bottomTerminal &&
+                  typeof bottomTerminal === "object" &&
+                  "props" in bottomTerminal
+                    ? React.cloneElement(
+                        bottomTerminal as React.ReactElement<{
+                          onClose?: () => void;
+                        }>,
+                        {
+                          onClose: handleToggleTerminal,
+                        },
+                      )
+                    : bottomTerminal}
+                </Panel>
+              </Group>
+            </Panel>
+
+            <Separator className="w-2 min-w-2 bg-transparent hover:bg-border/50 transition-colors cursor-col-resize relative flex items-center justify-center group">
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </Separator>
+
+            {/* Right Inspector */}
+            <Panel
+              defaultSize="30"
+              minSize="20"
+              maxSize="45"
+              className="bg-sidebar overflow-hidden"
+            >
+              {rightInspector}
+            </Panel>
+          </Group>
+        )}
       </div>
     </>
   );

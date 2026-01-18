@@ -2,14 +2,17 @@
 
 import {
   ArrowRight,
+  Minus,
   Pause,
   Play,
+  Plus,
   Repeat,
   Repeat1,
   Shuffle,
   SkipBack,
   SkipForward,
   Volume2,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +24,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 
 type TerminalPanelProps = {
   className?: string;
+  onClose?: () => void;
 };
 
 const mockLogs: string[] = [];
@@ -40,10 +44,10 @@ function ProgressBar({
   total: number;
   onSeek: (time: number) => void;
 }) {
-  const progressRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLButtonElement>(null);
 
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!progressRef.current) return;
       const rect = progressRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -59,21 +63,19 @@ function ProgressBar({
   const hasArrow = percentage > 0 && percentage < 100;
 
   return (
-    <div
+    <button
+      type="button"
       ref={progressRef}
       onClick={handleClick}
       className="flex h-5 w-full cursor-pointer items-center gap-0.5 border border-border bg-gray-900/50 px-1 hover:bg-gray-900/70"
-      role="progressbar"
-      aria-valuenow={percentage}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-label="Audio progress bar"
+      aria-label={`Audio progress: ${Math.round(percentage)}%`}
     >
-      {Array.from({ length: 10 }).map((_, i) => {
+      {Array.from({ length: 10 }, (_, i) => {
+        const barKey = `progress-bar-${i}-${filledBars}`;
         if (i < filledBars) {
           return (
             <div
-              key={i}
+              key={barKey}
               className="h-2 flex-1 bg-gray-400"
               aria-hidden="true"
             />
@@ -82,7 +84,7 @@ function ProgressBar({
         if (i === filledBars && hasArrow) {
           return (
             <div
-              key={i}
+              key={barKey}
               className="h-2 flex-1 bg-gray-600 relative"
               aria-hidden="true"
             >
@@ -91,10 +93,14 @@ function ProgressBar({
           );
         }
         return (
-          <div key={i} className="h-2 flex-1 bg-gray-700" aria-hidden="true" />
+          <div
+            key={barKey}
+            className="h-2 flex-1 bg-gray-700"
+            aria-hidden="true"
+          />
         );
       })}
-    </div>
+    </button>
   );
 }
 
@@ -122,18 +128,13 @@ function VolumeSlider({
   const PlayOrderIcon = playOrderIcons[playOrder] || ArrowRight;
   const fullText = t(`playOrder.${playOrder}`);
   const [displayedText, setDisplayedText] = useState("");
-  const [isHovering, setIsHovering] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (!isHovering) {
-      setDisplayedText("");
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      return;
-    }
+  const volumeText = `${Math.round(value * 100)}%`;
+  const [displayedVolumeText, setDisplayedVolumeText] = useState("");
+  const volumeTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const handlePlayOrderMouseEnter = useCallback(() => {
     setDisplayedText("");
     let currentIndex = 0;
 
@@ -146,16 +147,38 @@ function VolumeSlider({
     };
 
     typingTimeoutRef.current = setTimeout(typeNextChar, 50);
+  }, [fullText]);
 
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
+  const handlePlayOrderMouseLeave = useCallback(() => {
+    setDisplayedText("");
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    setDisplayedVolumeText("");
+    let currentIndex = 0;
+
+    const typeNextChar = () => {
+      if (currentIndex < volumeText.length) {
+        setDisplayedVolumeText(volumeText.slice(0, currentIndex + 1));
+        currentIndex++;
+        volumeTypingTimeoutRef.current = setTimeout(typeNextChar, 50);
       }
     };
-  }, [isHovering, fullText]);
+
+    volumeTypingTimeoutRef.current = setTimeout(typeNextChar, 50);
+
+    return () => {
+      if (volumeTypingTimeoutRef.current) {
+        clearTimeout(volumeTypingTimeoutRef.current);
+      }
+    };
+  }, [volumeText]);
 
   const handleBarsClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, x / rect.width));
@@ -166,22 +189,54 @@ function VolumeSlider({
     [onChange],
   );
 
+  const handleVolumeKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const newVolume = Math.max(0, value - 0.05);
+        onChange(newVolume);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const newVolume = Math.min(1, value + 0.05);
+        onChange(newVolume);
+      }
+    },
+    [value, onChange],
+  );
+
+  const handleDecrease = useCallback(() => {
+    const newVolume = Math.max(0, value - 0.05);
+    onChange(newVolume);
+  }, [value, onChange]);
+
+  const handleIncrease = useCallback(() => {
+    const newVolume = Math.min(1, value + 0.05);
+    onChange(newVolume);
+  }, [value, onChange]);
+
   return (
     <div className="flex items-center gap-2">
       <Volume2 className="h-3 w-3 text-gray-500" aria-hidden="true" />
       <span className="hidden sm:inline text-[10px] text-gray-500">VOL</span>
-      <div
-        className="hidden sm:flex gap-0.5 cursor-pointer"
-        onClick={handleBarsClick}
-        role="slider"
-        aria-valuenow={Math.round(value * 100)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Volume control"
+      <button
+        type="button"
+        onClick={handleDecrease}
+        className="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 rounded transition-colors"
+        aria-label="Decrease volume by 5%"
+        disabled={value <= 0}
       >
-        {Array.from({ length: 10 }).map((_, i) => (
+        <Minus className="h-3 w-3" strokeWidth={2} />
+      </button>
+      <button
+        type="button"
+        className="flex gap-0.5 cursor-pointer bg-transparent border-none p-0"
+        onClick={handleBarsClick}
+        onKeyDown={handleVolumeKeyDown}
+        aria-label={`Volume: ${Math.round(value * 100)}%`}
+      >
+        {Array.from({ length: 10 }, (_, i) => (
           <div
-            key={i}
+            key={`volume-bar-${i}-${filledBars}`}
             className={cn(
               "w-1 h-3 transition-colors",
               i < filledBars ? "bg-gray-400" : "bg-gray-700",
@@ -189,25 +244,38 @@ function VolumeSlider({
             aria-hidden="true"
           />
         ))}
-      </div>
-      <span className="hidden sm:inline w-10 text-right text-[10px] text-gray-500">
-        {Math.round(value * 100)}%
-      </span>
-      <div
-        className="ml-auto relative group"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
-        <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 whitespace-nowrap pointer-events-none">
-          {displayedText}
-          {isHovering && displayedText.length < fullText.length && (
+      </button>
+      <div className="relative group">
+        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 whitespace-nowrap pointer-events-none">
+          {displayedVolumeText}
+          {displayedVolumeText.length < volumeText.length && (
             <span className="animate-pulse">|</span>
           )}
         </span>
         <button
           type="button"
+          onClick={handleIncrease}
+          className="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 rounded transition-colors"
+          aria-label="Increase volume by 5%"
+          disabled={value >= 1}
+        >
+          <Plus className="h-3 w-3" strokeWidth={2} />
+        </button>
+      </div>
+      <div className="ml-auto relative">
+        <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 whitespace-nowrap pointer-events-none">
+          {displayedText}
+          {displayedText.length > 0 &&
+            displayedText.length < fullText.length && (
+              <span className="animate-pulse">|</span>
+            )}
+        </span>
+        <button
+          type="button"
           className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 rounded transition-colors"
           onClick={onCyclePlayOrder}
+          onMouseEnter={handlePlayOrderMouseEnter}
+          onMouseLeave={handlePlayOrderMouseLeave}
           aria-label={fullText}
         >
           <PlayOrderIcon className="h-3 w-3" strokeWidth={2} />
@@ -217,7 +285,7 @@ function VolumeSlider({
   );
 }
 
-export function TerminalPanel({ className }: TerminalPanelProps) {
+export function TerminalPanel({ className, onClose }: TerminalPanelProps) {
   const {
     isPlaying,
     volume,
@@ -245,21 +313,19 @@ export function TerminalPanel({ className }: TerminalPanelProps) {
   const handlePlayPause = () => {
     if (isPlaying) {
       pause();
-    } else {
+    } else if (!currentTrackId) {
       // If no track is selected, use active file from IDE or first file
-      if (!currentTrackId) {
-        const trackToPlay = activeFileId
-          ? files.find((f) => f.id === activeFileId)
-          : files[0];
+      const trackToPlay = activeFileId
+        ? files.find((f) => f.id === activeFileId)
+        : files[0];
 
-        if (trackToPlay) {
-          addToQueue(trackToPlay);
-          setTrack(trackToPlay.id);
-          setTimeout(() => play(trackToPlay), 100);
-        }
-      } else {
-        play();
+      if (trackToPlay) {
+        addToQueue(trackToPlay);
+        setTrack(trackToPlay.id);
+        setTimeout(() => play(trackToPlay), 100);
       }
+    } else {
+      play();
     }
   };
 
@@ -278,10 +344,22 @@ export function TerminalPanel({ className }: TerminalPanelProps) {
   return (
     <div
       className={cn(
-        "flex h-full flex-col bg-muted font-mono text-[12px]",
+        "flex h-full flex-col bg-muted font-mono text-[12px] relative",
         className,
       )}
     >
+      {/* Close Button - Top right corner (Desktop only) */}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="hidden md:flex absolute top-2 right-2 z-10 p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 rounded transition-colors"
+          aria-label="Close terminal"
+        >
+          <X className="h-4 w-4" strokeWidth={2} />
+        </button>
+      )}
+
       {/* Tabs - Hidden on mobile */}
       <div className="hidden md:flex border-b border-border bg-muted">
         {tabs.map((tab) => (
@@ -307,7 +385,8 @@ export function TerminalPanel({ className }: TerminalPanelProps) {
         <ScrollArea className="hidden md:flex flex-1">
           <div className="p-4 space-y-1 text-gray-400">
             {mockLogs.map((log, index) => (
-              <div key={index} className="leading-6">
+              // biome-ignore lint/suspicious/noArrayIndexKey: Terminal logs are sequential and order-based, index is appropriate here
+              <div key={`${log}-${index}`} className="leading-6">
                 {log}
               </div>
             ))}
