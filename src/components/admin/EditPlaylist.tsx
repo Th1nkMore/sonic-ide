@@ -35,7 +35,7 @@ export function EditPlaylist({
   updateEditedSong,
 }: EditPlaylistProps) {
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="flex-1 h-full">
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
