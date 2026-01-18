@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2
@@ -11,7 +11,7 @@
         "noExcessiveCognitiveComplexity": {
           "level": "error",
           "options": {
-            "threshold": 15
+            "maxAllowedComplexity": 15
           }
         },
         "noExcessiveNestedTestSuites": "error",
@@ -24,15 +24,14 @@
         "noUselessSwitchCase": "error",
         "noUselessTypeConstraint": "error",
         "useArrowFunction": "warn",
-        "useCollapsedElseIf": "warn",
         "useSimplifiedLogicExpression": "warn"
+      },
+      "style": {
+        "useCollapsedElseIf": "warn"
       }
     }
   },
   "files": {
-    "ignore": [
-      "node_modules",
-      ".next"
-    ]
+    "includes": ["**", "!**/node_modules", "!**/.next"]
   }
 }
