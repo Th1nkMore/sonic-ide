@@ -3,7 +3,17 @@ name: Deploy to Personal Server
 on:
   push:
     branches:
-      - live  # Only triggers on push to live branch
+      - live
+
+# --- CONFIGURATION SECTION ---
+# Change these values to match your server environment
+env:
+  # The path you found using 'which pnpm' on the server
+  NODE_BIN_PATH: "/usr/local/node-v20.14.0/bin" 
+  # Where your app lives on the server
+  DEPLOY_PATH: "/var/www/sonic-ide"
+  # The name you want to see in PM2
+  APP_NAME: "sonic-ide"
 
 jobs:
   deploy:
@@ -12,22 +22,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # Optional: This creates a "Health Check" build on GitHub 
+      # to ensure code isn't broken before we even try to connect to the server.
+      - name: Build Check (Local)
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Install Dependencies & Build
+      - name: Install & Test Build
         run: |
+          npm install -g pnpm@9
           pnpm install
           pnpm build
-        # This step ensures the code builds successfully before deployment
-        # If server performance is weak, you can build here and transfer the build artifacts
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -36,22 +41,33 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT }}
+          
+          # We pass the environment variables defined at the top to the remote server
+          envs: NODE_BIN_PATH,DEPLOY_PATH,APP_NAME
+          
           script: |
-            source ~/.bashrc
-            source ~/.profile
-            [ -s "$HOME/.nvm/nvm.sh" ] && \. "$HOME/.nvm/nvm.sh"
+            # 1. FORCE THE PATH (The fix for "command not found")
+            # We add your specific node binary path to the system PATH
+            export PATH="$NODE_BIN_PATH:$PATH"
+            
+            # Debugging: prove it works
+            echo "Using Node tools from: $NODE_BIN_PATH"
+            echo "Pnpm version: $(pnpm -v)"
 
-            # 1. Navigate to server directory
-            cd /var/www/sonic-ide
+            # 2. Navigate to server directory
+            # If directory doesn't exist, stop immediately
+            cd $DEPLOY_PATH || exit 1
 
-            # 2. Pull latest live branch
+            # 3. Pull latest live branch
             git fetch origin live
             git reset --hard origin/live
 
-            # 3. Install dependencies and build
-            # Note: Environment variables .env should already be configured on the server, don't commit to git!
+            # 4. Install dependencies and build on server
             pnpm install
             pnpm build
 
-            # 4. Restart service (assuming using pm2)
-            pm2 reload sonic-ide || pm2 start pnpm --name "sonic-ide" -- start
+            # 5. Restart service
+            # We use --cwd to ensure PM2 knows where the app is running
+            pm2 reload $APP_NAME || pm2 start pnpm --name "$APP_NAME" --cwd $DEPLOY_PATH -- start
+            
+            echo "Deployment of $APP_NAME successful!"
