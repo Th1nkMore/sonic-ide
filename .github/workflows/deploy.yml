@@ -37,6 +37,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
+            source ~/.bashrc
+            source ~/.profile
+            [ -s "$HOME/.nvm/nvm.sh" ] && \. "$HOME/.nvm/nvm.sh"
+
             # 1. Navigate to server directory
             cd /var/www/sonic-ide
 
