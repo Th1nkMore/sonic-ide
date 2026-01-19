@@ -24,8 +24,10 @@ export const useIDEStore = create<IDEState>((set, get) => ({
   fetchSongs: async () => {
     set({ isLoading: true });
     try {
-      // Fetch from our API route (proxies R2 to avoid CORS issues)
-      const response = await fetch("/api/playlist");
+      // Fetch directly from public R2 URL
+      const response = await fetch(
+        "https://files.th1nkmore.space/playlist.json",
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch playlist: ${response.statusText}`);
       }
