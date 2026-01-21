@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Circle, FileAudio, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { useDeviceType } from "@/lib/hooks/useDeviceType";
 import { cn } from "@/lib/utils";
 import { useIDEStore } from "@/store/useIDEStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
@@ -27,9 +28,10 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 type QueueItemProps = {
   songId: string;
   isActive: boolean;
+  isTouchDevice: boolean;
 };
 
-function QueueItem({ songId, isActive }: QueueItemProps) {
+function QueueItem({ songId, isActive, isTouchDevice }: QueueItemProps) {
   const { files, openFile } = useIDEStore();
   const { removeFromQueue, setTrack, play } = usePlayerStore();
   const song = useMemo(
@@ -113,7 +115,12 @@ function QueueItem({ songId, isActive }: QueueItemProps) {
       <button
         type="button"
         onClick={handleRemove}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-700/50 rounded"
+        className={cn(
+          "p-0.5 hover:bg-gray-700/50 rounded transition-opacity",
+          isTouchDevice
+            ? "opacity-100 text-gray-400/60 active:bg-gray-800"
+            : "opacity-0 group-hover:opacity-100",
+        )}
         aria-label={`Remove ${song.title} from queue`}
       >
         <X className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -125,6 +132,8 @@ function QueueItem({ songId, isActive }: QueueItemProps) {
 export function RuntimeQueue() {
   const { queue, currentTrackId, reorderQueue } = usePlayerStore();
   const t = useTranslations("fileExplorer");
+  const deviceType = useDeviceType();
+  const isTouchDevice = deviceType === "touch";
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -175,6 +184,7 @@ export function RuntimeQueue() {
               key={song.id}
               songId={song.id}
               isActive={song.id === currentTrackId}
+              isTouchDevice={isTouchDevice}
             />
           ))}
         </AnimatePresence>
