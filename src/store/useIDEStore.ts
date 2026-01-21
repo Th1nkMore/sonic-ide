@@ -17,7 +17,7 @@ type IDEState = {
 
 export const useIDEStore = create<IDEState>((set, get) => ({
   files: [],
-  isLoading: false,
+  isLoading: true,
   openFiles: [],
   activeFileId: null,
 
