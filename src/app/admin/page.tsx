@@ -35,6 +35,8 @@ export default function AdminPage() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isFetchingLyrics, setIsFetchingLyrics] = useState(false);
   const [neteaseUrl, setNeteaseUrl] = useState("");
+  const [neteaseUrlEdit, setNeteaseUrlEdit] = useState("");
+  const [isFetchingLyricsEdit, setIsFetchingLyricsEdit] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>("");
   const logCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,11 +90,13 @@ export default function AdminPage() {
   const handleEditSong = (song: Song) => {
     setEditingSongId(song.id);
     setEditedSong({ ...song });
+    setNeteaseUrlEdit(""); // Reset NetEase URL when starting to edit
   };
 
   const handleCancelEdit = () => {
     setEditingSongId(null);
     setEditedSong(null);
+    setNeteaseUrlEdit(""); // Clear NetEase URL when canceling
   };
 
   const handleSaveEdit = () => {
@@ -187,6 +191,46 @@ export default function AdminPage() {
       addLog(`> Error: ${errorMessage}`);
     } finally {
       setIsFetchingLyrics(false);
+    }
+  };
+
+  const handleFetchLyricsEdit = async () => {
+    if (!neteaseUrlEdit) {
+      addLog("> Error: Please enter a NetEase Music URL");
+      return;
+    }
+
+    if (!editedSong) {
+      addLog("> Error: No song is being edited");
+      return;
+    }
+
+    setIsFetchingLyricsEdit(true);
+    addLog("> Fetching lyrics from NetEase Music...");
+
+    try {
+      const response = await fetch("/api/admin/fetch-lyrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: neteaseUrlEdit }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch lyrics");
+      }
+
+      const data = await response.json();
+      updateEditedSong("lyrics", data.lyrics);
+      addLog(`> Successfully fetched lyrics for song ID: ${data.songId}`);
+      addLog(`> Lyrics loaded (${data.lyrics.split("\n").length} lines)`);
+      setNeteaseUrlEdit(""); // Clear URL after successful fetch
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      addLog(`> Error: ${errorMessage}`);
+    } finally {
+      setIsFetchingLyricsEdit(false);
     }
   };
 
@@ -404,6 +448,10 @@ export default function AdminPage() {
               handleDeleteSong={handleDeleteSong}
               handleSavePlaylist={handleSavePlaylist}
               updateEditedSong={updateEditedSong}
+              neteaseUrlEdit={neteaseUrlEdit}
+              setNeteaseUrlEdit={setNeteaseUrlEdit}
+              isFetchingLyricsEdit={isFetchingLyricsEdit}
+              handleFetchLyricsEdit={handleFetchLyricsEdit}
             />
           )}
         </div>
