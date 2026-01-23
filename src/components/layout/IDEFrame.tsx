@@ -35,7 +35,7 @@ export function IDEFrame({
   bottomTerminal,
 }: IDEFrameProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileTerminalOpen, setMobileTerminalOpen] = useState(false);
+  const [mobileTerminalVisible, setMobileTerminalVisible] = useState(true);
   const [terminalVisible, setTerminalVisible] = useState(true);
   const [isDesktop, setIsDesktop] = useState(false);
   const terminalPanelRef = useRef<PanelImperativeHandle | null>(null);
@@ -67,6 +67,10 @@ export function IDEFrame({
     } else {
       terminalPanelRef.current.collapse();
     }
+  };
+
+  const handleToggleMobileTerminal = () => {
+    setMobileTerminalVisible((prev) => !prev);
   };
 
   const handleTerminalResize = (
@@ -128,9 +132,15 @@ export function IDEFrame({
             </span>
             <button
               type="button"
-              onClick={() => setMobileTerminalOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded border border-border bg-sidebar text-gray-400 hover:bg-gray-800/50 transition-colors"
-              aria-label="Open terminal"
+              onClick={handleToggleMobileTerminal}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded border border-border bg-sidebar text-gray-400 hover:bg-gray-800/50 transition-colors",
+                mobileTerminalVisible && "bg-gray-800/50 text-gray-300",
+              )}
+              aria-label={
+                mobileTerminalVisible ? "Hide terminal" : "Show terminal"
+              }
+              aria-pressed={mobileTerminalVisible}
             >
               <Terminal className="h-4 w-4" />
             </button>
@@ -153,22 +163,35 @@ export function IDEFrame({
 
         {/* Mobile Layout - Only render on mobile */}
         {!isDesktop && (
-          <div className="flex-1 overflow-hidden">
-            <main className="h-full overflow-hidden bg-background">
+          <div className="flex-1 overflow-hidden flex flex-col relative">
+            <main className="flex-1 min-h-0 overflow-hidden bg-background">
               {centerEditor}
             </main>
-            <Sheet
-              open={mobileTerminalOpen}
-              onOpenChange={setMobileTerminalOpen}
+            {/* Fixed Bottom Panel - Replaces Sheet */}
+            <div
+              className={cn(
+                "absolute bottom-0 left-0 right-0 z-50 bg-muted border-t border-border transition-transform duration-300 ease-in-out",
+                mobileTerminalVisible ? "translate-y-0" : "translate-y-full",
+              )}
+              style={{
+                maxHeight: "40vh",
+              }}
             >
-              <SheetContent
-                side="bottom"
-                className="h-auto max-h-[40vh] bg-muted border-border p-0"
-              >
-                <SheetTitle className="sr-only">Terminal</SheetTitle>
-                {bottomTerminal}
-              </SheetContent>
-            </Sheet>
+              <div className="h-full overflow-hidden">
+                {bottomTerminal &&
+                typeof bottomTerminal === "object" &&
+                "props" in bottomTerminal
+                  ? React.cloneElement(
+                      bottomTerminal as React.ReactElement<{
+                        onClose?: () => void;
+                      }>,
+                      {
+                        onClose: handleToggleMobileTerminal,
+                      },
+                    )
+                  : bottomTerminal}
+              </div>
+            </div>
           </div>
         )}
 
