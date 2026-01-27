@@ -203,20 +203,18 @@ export function IDEFrame({
               defaultSize="20"
               minSize="15"
               maxSize="40"
-              className="border-r border-border bg-sidebar overflow-hidden"
+              className="bg-sidebar overflow-hidden"
             >
               {leftSidebar}
             </Panel>
 
-            <Separator className="w-2 min-w-2 bg-transparent hover:bg-border/50 transition-colors cursor-col-resize relative flex items-center justify-center group">
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            </Separator>
+            <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
 
             {/* Center Area - Contains Editor and Terminal vertically */}
             <Panel
               defaultSize="50"
               minSize="30"
-              className="flex flex-col overflow-hidden bg-background border-r border-border"
+              className="flex flex-col overflow-hidden bg-background"
             >
               <Group orientation="vertical" className="flex-1">
                 {/* Editor */}
@@ -224,10 +222,8 @@ export function IDEFrame({
                   <div className="h-full overflow-hidden">{centerEditor}</div>
                 </Panel>
 
-                {/* Terminal Resize Handle - Always present to maintain layout structure */}
-                <Separator className="h-1 bg-transparent hover:bg-border/50 transition-colors cursor-row-resize relative flex items-center justify-center group">
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </Separator>
+                {/* Terminal Resize Handle */}
+                <Separator className="h-px bg-border hover:h-1 hover:bg-primary/50 transition-all cursor-row-resize" />
 
                 {/* Terminal - Collapsible */}
                 <Panel
@@ -236,7 +232,7 @@ export function IDEFrame({
                   minSize="0"
                   collapsible
                   onResize={handleTerminalResize}
-                  className="overflow-hidden bg-muted border-t border-border"
+                  className="overflow-hidden bg-muted"
                 >
                   {bottomTerminal &&
                   typeof bottomTerminal === "object" &&
@@ -254,9 +250,7 @@ export function IDEFrame({
               </Group>
             </Panel>
 
-            <Separator className="w-2 min-w-2 bg-transparent hover:bg-border/50 transition-colors cursor-col-resize relative flex items-center justify-center group">
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            </Separator>
+            <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
 
             {/* Right Inspector */}
             <Panel
