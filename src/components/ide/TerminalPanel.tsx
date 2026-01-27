@@ -128,13 +128,23 @@ function VolumeSlider({
   const PlayOrderIcon = playOrderIcons[playOrder] || ArrowRight;
   const fullText = t(`playOrder.${playOrder}`);
   const [displayedText, setDisplayedText] = useState("");
+  const [isHovering, setIsHovering] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const volumeText = `${Math.round(value * 100)}%`;
   const [displayedVolumeText, setDisplayedVolumeText] = useState("");
   const volumeTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handlePlayOrderMouseEnter = useCallback(() => {
+  // Restart typing animation when playOrder (fullText) changes while hovering
+  useEffect(() => {
+    if (!isHovering) return;
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Start new typing animation
     setDisplayedText("");
     let currentIndex = 0;
 
@@ -147,9 +157,20 @@ function VolumeSlider({
     };
 
     typingTimeoutRef.current = setTimeout(typeNextChar, 50);
-  }, [fullText]);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [fullText, isHovering]);
+
+  const handlePlayOrderMouseEnter = useCallback(() => {
+    setIsHovering(true);
+  }, []);
 
   const handlePlayOrderMouseLeave = useCallback(() => {
+    setIsHovering(false);
     setDisplayedText("");
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
