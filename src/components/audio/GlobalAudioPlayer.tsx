@@ -1,9 +1,73 @@
 "use client";
 
 import { Howl } from "howler";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIDEStore } from "@/store/useIDEStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
+
+/**
+ * Ensures a filename is properly encoded.
+ */
+function encodeFilename(filename: string): string {
+  try {
+    const decoded = decodeURIComponent(filename);
+    const reEncoded = encodeURIComponent(decoded);
+    if (reEncoded !== filename) {
+      return reEncoded;
+    }
+  } catch {
+    // If decode fails, filename might not be encoded - encode it
+    const encoded = encodeURIComponent(filename);
+    if (encoded !== filename) {
+      return encoded;
+    }
+  }
+  return filename;
+}
+
+/**
+ * Fixes audio URL by correcting domain and ensuring proper filename encoding.
+ */
+function fixAudioUrl(audioUrl: string): string {
+  let fixedUrl = audioUrl;
+  // Fix domain: remove .com if present
+  if (fixedUrl.includes("files.th1nkmore.space.com")) {
+    fixedUrl = fixedUrl.replace(
+      "files.th1nkmore.space.com",
+      "files.th1nkmore.space",
+    );
+  }
+  // Fix filename encoding
+  try {
+    const url = new URL(fixedUrl);
+    const pathParts = url.pathname.split("/");
+    const filename = pathParts[pathParts.length - 1];
+    if (filename) {
+      const encodedFilename = encodeFilename(filename);
+      if (encodedFilename !== filename) {
+        pathParts[pathParts.length - 1] = encodedFilename;
+        url.pathname = pathParts.join("/");
+        fixedUrl = url.toString();
+      }
+    }
+  } catch (_e) {
+    // If URL parsing fails, try simple string replacement for filename encoding
+    const urlMatch = fixedUrl.match(/^(https?:\/\/[^/]+)(\/.+)$/);
+    if (urlMatch) {
+      const [, base, path] = urlMatch;
+      const pathParts = path.split("/");
+      const filename = pathParts[pathParts.length - 1];
+      if (filename) {
+        const encodedFilename = encodeFilename(filename);
+        if (encodedFilename !== filename) {
+          pathParts[pathParts.length - 1] = encodedFilename;
+          fixedUrl = base + pathParts.join("/");
+        }
+      }
+    }
+  }
+  return fixedUrl;
+}
 
 /**
  * Headless audio player component that manages Howl instance
@@ -15,13 +79,10 @@ export function GlobalAudioPlayer() {
     volume,
     currentTime,
     currentTrackId,
-    queue,
     play: playAction,
     pause: pauseAction,
-    seek: seekAction,
     setDuration,
     setCurrentTime,
-    setTrack,
     playNext,
   } = usePlayerStore();
 
@@ -31,6 +92,28 @@ export function GlobalAudioPlayer() {
   const animationFrameRef = useRef<number | null>(null);
   const lastSeekRef = useRef<number | null>(null);
   const shouldAutoPlayRef = useRef<boolean>(false);
+  const lastPlayRequestAtRef = useRef<number>(0);
+
+  // Handle play logic
+  const handlePlay = useCallback(() => {
+    if (!howlRef.current || howlRef.current.playing()) return;
+    lastPlayRequestAtRef.current = Date.now();
+    const state = howlRef.current.state();
+    if (state === "loaded" || state === "unloaded") {
+      howlRef.current.play();
+    } else if (state === "loading") {
+      shouldAutoPlayRef.current = true;
+    }
+  }, []);
+
+  // Handle pause logic
+  const handlePause = useCallback(() => {
+    if (!howlRef.current) return;
+    if (howlRef.current.playing()) {
+      howlRef.current.pause();
+    }
+    shouldAutoPlayRef.current = false;
+  }, []);
 
   // Initialize or update Howl instance when track changes
   useEffect(() => {
@@ -59,69 +142,15 @@ export function GlobalAudioPlayer() {
 
     // Create new Howl instance
     // Fix URL: correct domain and ensure filename is properly encoded
-    let audioUrl = track.audioUrl;
-    // Fix domain: remove .com if present
-    if (audioUrl.includes("files.th1nkmore.space.com")) {
-      audioUrl = audioUrl.replace(
-        "files.th1nkmore.space.com",
-        "files.th1nkmore.space",
-      );
-    }
-    // Fix filename encoding
-    try {
-      const url = new URL(audioUrl);
-      const pathParts = url.pathname.split("/");
-      const filename = pathParts[pathParts.length - 1];
-      if (filename) {
-        // Decode and re-encode to ensure proper encoding
-        try {
-          const decoded = decodeURIComponent(filename);
-          const reEncoded = encodeURIComponent(decoded);
-          if (reEncoded !== filename) {
-            pathParts[pathParts.length - 1] = reEncoded;
-            url.pathname = pathParts.join("/");
-            audioUrl = url.toString();
-          }
-        } catch {
-          // If decode fails, filename might not be encoded - encode it
-          const encoded = encodeURIComponent(filename);
-          if (encoded !== filename) {
-            pathParts[pathParts.length - 1] = encoded;
-            url.pathname = pathParts.join("/");
-            audioUrl = url.toString();
-          }
-        }
-      }
-    } catch (e) {
-      // If URL parsing fails, try simple string replacement for filename encoding
-      const urlMatch = audioUrl.match(/^(https?:\/\/[^/]+)(\/.+)$/);
-      if (urlMatch) {
-        const [, base, path] = urlMatch;
-        const pathParts = path.split("/");
-        const filename = pathParts[pathParts.length - 1];
-        if (filename) {
-          try {
-            const decoded = decodeURIComponent(filename);
-            const reEncoded = encodeURIComponent(decoded);
-            if (reEncoded !== filename) {
-              pathParts[pathParts.length - 1] = reEncoded;
-              audioUrl = base + pathParts.join("/");
-            }
-          } catch {
-            const encoded = encodeURIComponent(filename);
-            if (encoded !== filename) {
-              pathParts[pathParts.length - 1] = encoded;
-              audioUrl = base + pathParts.join("/");
-            }
-          }
-        }
-      }
-    }
+    const audioUrl = fixAudioUrl(track.audioUrl);
+    // Get current volume from store (don't use volume from dependency to avoid recreating Howl)
+    const currentVolume = usePlayerStore.getState().volume;
     const howl = new Howl({
       src: [audioUrl],
       html5: true,
-      volume: volume,
+      volume: currentVolume,
       onload: () => {
+        if (howlRef.current !== howl) return;
         const duration = howl.duration();
         setDuration(duration);
         // Auto-play if requested while loading
@@ -131,6 +160,7 @@ export function GlobalAudioPlayer() {
         }
       },
       onend: () => {
+        if (howlRef.current !== howl) return;
         pauseAction();
         const state = usePlayerStore.getState();
         // For repeat-one, replay the same track immediately
@@ -148,13 +178,28 @@ export function GlobalAudioPlayer() {
         }
       },
       onplay: () => {
+        if (howlRef.current !== howl) return;
         playAction();
       },
       onpause: () => {
+        if (howlRef.current !== howl) return;
         pauseAction();
       },
-      onloaderror: (id, error) => {
+      onstop: () => {
+        if (howlRef.current !== howl) return;
+        // Treat stops (including external interruption) as paused.
+        pauseAction();
+      },
+      onplayerror: () => {
+        if (howlRef.current !== howl) return;
+        // If playback fails (autoplay restriction, device issue, etc.), ensure UI doesn't
+        // remain stuck in a "playing" state.
+        pauseAction();
+      },
+      onloaderror: (_id, _error) => {
+        if (howlRef.current !== howl) return;
         // Error handling - could log to console or error tracking service
+        pauseAction();
       },
     });
 
@@ -173,35 +218,47 @@ export function GlobalAudioPlayer() {
     playAction,
     pauseAction,
     setDuration,
-    setTrack,
     setCurrentTime,
+    playNext,
+    // Note: volume is intentionally excluded - it's handled by a separate useEffect
+    // to avoid recreating the Howl instance on every volume change
   ]);
 
   // Handle play/pause
   useEffect(() => {
-    if (!howlRef.current) {
-      return;
-    }
-
     if (isPlaying) {
-      if (!howlRef.current.playing()) {
-        const state = howlRef.current.state();
-        if (state === "loaded" || state === "unloaded") {
-          // Audio is loaded, play immediately
-          howlRef.current.play();
-        } else if (state === "loading") {
-          // Audio is still loading, set flag to auto-play when ready
-          shouldAutoPlayRef.current = true;
-        }
-      }
+      handlePlay();
     } else {
-      if (howlRef.current.playing()) {
-        howlRef.current.pause();
-      }
-      // Clear auto-play flag if paused
-      shouldAutoPlayRef.current = false;
+      handlePause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, handlePlay, handlePause]);
+
+  // Reconcile store "isPlaying" with actual engine state.
+  // This prevents UI from getting stuck in "playing" when audio is interrupted externally
+  // and no callback fires for some edge cases.
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const intervalId = window.setInterval(() => {
+      const howl = howlRef.current;
+      if (!howl) return;
+      if (howl.playing()) return;
+      if (shouldAutoPlayRef.current) return;
+
+      const state = howl.state();
+      if (state === "loading") return;
+
+      // Give a small grace period after requesting play.
+      const elapsedMs = Date.now() - lastPlayRequestAtRef.current;
+      if (elapsedMs < 1200) return;
+
+      pauseAction();
+    }, 500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isPlaying, pauseAction]);
 
   // Handle volume changes
   useEffect(() => {
@@ -235,7 +292,7 @@ export function GlobalAudioPlayer() {
     }
 
     const updateTime = () => {
-      if (howlRef.current && howlRef.current.playing()) {
+      if (howlRef.current?.playing()) {
         const time = howlRef.current.seek() as number;
 
         // Only update if we're not in the middle of a seek operation

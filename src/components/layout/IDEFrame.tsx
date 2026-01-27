@@ -35,7 +35,7 @@ export function IDEFrame({
   bottomTerminal,
 }: IDEFrameProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileTerminalOpen, setMobileTerminalOpen] = useState(false);
+  const [mobileTerminalVisible, setMobileTerminalVisible] = useState(true);
   const [terminalVisible, setTerminalVisible] = useState(true);
   const [isDesktop, setIsDesktop] = useState(false);
   const terminalPanelRef = useRef<PanelImperativeHandle | null>(null);
@@ -67,6 +67,10 @@ export function IDEFrame({
     } else {
       terminalPanelRef.current.collapse();
     }
+  };
+
+  const handleToggleMobileTerminal = () => {
+    setMobileTerminalVisible((prev) => !prev);
   };
 
   const handleTerminalResize = (
@@ -128,9 +132,15 @@ export function IDEFrame({
             </span>
             <button
               type="button"
-              onClick={() => setMobileTerminalOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded border border-border bg-sidebar text-gray-400 hover:bg-gray-800/50 transition-colors"
-              aria-label="Open terminal"
+              onClick={handleToggleMobileTerminal}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded border border-border bg-sidebar text-gray-400 hover:bg-gray-800/50 transition-colors",
+                mobileTerminalVisible && "bg-gray-800/50 text-gray-300",
+              )}
+              aria-label={
+                mobileTerminalVisible ? "Hide terminal" : "Show terminal"
+              }
+              aria-pressed={mobileTerminalVisible}
             >
               <Terminal className="h-4 w-4" />
             </button>
@@ -153,22 +163,35 @@ export function IDEFrame({
 
         {/* Mobile Layout - Only render on mobile */}
         {!isDesktop && (
-          <div className="flex-1 overflow-hidden">
-            <main className="h-full overflow-hidden bg-background">
+          <div className="flex-1 overflow-hidden flex flex-col relative">
+            <main className="flex-1 min-h-0 overflow-hidden bg-background">
               {centerEditor}
             </main>
-            <Sheet
-              open={mobileTerminalOpen}
-              onOpenChange={setMobileTerminalOpen}
+            {/* Fixed Bottom Panel - Replaces Sheet */}
+            <div
+              className={cn(
+                "absolute bottom-0 left-0 right-0 z-50 bg-muted border-t border-border transition-transform duration-300 ease-in-out",
+                mobileTerminalVisible ? "translate-y-0" : "translate-y-full",
+              )}
+              style={{
+                maxHeight: "40vh",
+              }}
             >
-              <SheetContent
-                side="bottom"
-                className="h-auto max-h-[40vh] bg-muted border-border p-0"
-              >
-                <SheetTitle className="sr-only">Terminal</SheetTitle>
-                {bottomTerminal}
-              </SheetContent>
-            </Sheet>
+              <div className="h-full overflow-hidden">
+                {bottomTerminal &&
+                typeof bottomTerminal === "object" &&
+                "props" in bottomTerminal
+                  ? React.cloneElement(
+                      bottomTerminal as React.ReactElement<{
+                        onClose?: () => void;
+                      }>,
+                      {
+                        onClose: handleToggleMobileTerminal,
+                      },
+                    )
+                  : bottomTerminal}
+              </div>
+            </div>
           </div>
         )}
 
@@ -180,20 +203,18 @@ export function IDEFrame({
               defaultSize="20"
               minSize="15"
               maxSize="40"
-              className="border-r border-border bg-sidebar overflow-hidden"
+              className="bg-sidebar overflow-hidden"
             >
               {leftSidebar}
             </Panel>
 
-            <Separator className="w-2 min-w-2 bg-transparent hover:bg-border/50 transition-colors cursor-col-resize relative flex items-center justify-center group">
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            </Separator>
+            <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
 
             {/* Center Area - Contains Editor and Terminal vertically */}
             <Panel
               defaultSize="50"
               minSize="30"
-              className="flex flex-col overflow-hidden bg-background border-r border-border"
+              className="flex flex-col overflow-hidden bg-background"
             >
               <Group orientation="vertical" className="flex-1">
                 {/* Editor */}
@@ -201,10 +222,8 @@ export function IDEFrame({
                   <div className="h-full overflow-hidden">{centerEditor}</div>
                 </Panel>
 
-                {/* Terminal Resize Handle - Always present to maintain layout structure */}
-                <Separator className="h-1 bg-transparent hover:bg-border/50 transition-colors cursor-row-resize relative flex items-center justify-center group">
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </Separator>
+                {/* Terminal Resize Handle */}
+                <Separator className="h-px bg-border hover:h-1 hover:bg-primary/50 transition-all cursor-row-resize" />
 
                 {/* Terminal - Collapsible */}
                 <Panel
@@ -213,7 +232,7 @@ export function IDEFrame({
                   minSize="0"
                   collapsible
                   onResize={handleTerminalResize}
-                  className="overflow-hidden bg-muted border-t border-border"
+                  className="overflow-hidden bg-muted"
                 >
                   {bottomTerminal &&
                   typeof bottomTerminal === "object" &&
@@ -231,9 +250,7 @@ export function IDEFrame({
               </Group>
             </Panel>
 
-            <Separator className="w-2 min-w-2 bg-transparent hover:bg-border/50 transition-colors cursor-col-resize relative flex items-center justify-center group">
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            </Separator>
+            <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
 
             {/* Right Inspector */}
             <Panel
