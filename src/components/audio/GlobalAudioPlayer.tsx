@@ -143,10 +143,12 @@ export function GlobalAudioPlayer() {
     // Create new Howl instance
     // Fix URL: correct domain and ensure filename is properly encoded
     const audioUrl = fixAudioUrl(track.audioUrl);
+    // Get current volume from store (don't use volume from dependency to avoid recreating Howl)
+    const currentVolume = usePlayerStore.getState().volume;
     const howl = new Howl({
       src: [audioUrl],
       html5: true,
-      volume: volume,
+      volume: currentVolume,
       onload: () => {
         if (howlRef.current !== howl) return;
         const duration = howl.duration();
@@ -218,7 +220,8 @@ export function GlobalAudioPlayer() {
     setDuration,
     setCurrentTime,
     playNext,
-    volume,
+    // Note: volume is intentionally excluded - it's handled by a separate useEffect
+    // to avoid recreating the Howl instance on every volume change
   ]);
 
   // Handle play/pause
