@@ -218,7 +218,6 @@ export function CodeEditor({
 
     return displayLines.slice(startIdx, endIdx);
   }, [compactMode, displayLines, activeLineIndex]);
-
   if (!currentTrack) {
     return (
       <div

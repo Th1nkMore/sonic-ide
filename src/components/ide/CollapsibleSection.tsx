@@ -1,8 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -11,40 +10,40 @@ type CollapsibleSectionProps = {
   isOpen: boolean;
   onToggle: () => void;
   children: ReactNode;
-  /** Whether to use flex-1 to fill available space */
-  fillSpace?: boolean;
-  /** Max height for scroll area (e.g., "300px") */
-  maxHeight?: string;
   /** Additional class for the container */
   className?: string;
+  /** Inline style for dynamic sizing (height, flex, etc.) */
+  style?: CSSProperties;
 };
 
-const transitionConfig = {
-  height: { duration: 0.25, ease: "easeInOut" as const },
-  opacity: { duration: 0.2, ease: "easeInOut" as const },
-};
-
+/**
+ * VS Code-style collapsible section with resizable support.
+ *
+ * Design principles (like VS Code explorer):
+ * - Header is ALWAYS visible (never overlaps with other headers)
+ * - Collapsed = only header visible (fixed ~26px height)
+ * - Expanded = header + content, uses flex to share space
+ * - Sections can be resized via drag handle (managed by parent)
+ * - Each section's content scrolls independently
+ */
 export function CollapsibleSection({
   title,
   isOpen,
   onToggle,
   children,
-  fillSpace = false,
-  maxHeight,
   className,
+  style,
 }: CollapsibleSectionProps) {
   return (
     <div
-      className={cn(
-        "flex flex-col",
-        fillSpace ? "flex-1 min-h-0" : "shrink-0",
-        className,
-      )}
+      className={cn("flex flex-col min-h-0 overflow-hidden", className)}
+      style={style}
     >
+      {/* Header - always visible, fixed height */}
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-1.5 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 hover:bg-gray-800/30 transition-colors shrink-0"
+        className="flex w-full items-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 hover:bg-gray-800/30 transition-colors shrink-0"
       >
         {isOpen ? (
           <ChevronDown className="h-3 w-3" aria-hidden="true" />
@@ -53,24 +52,9 @@ export function CollapsibleSection({
         )}
         <span>{title}</span>
       </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: fillSpace ? "100%" : "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={transitionConfig}
-            className={cn("overflow-hidden", fillSpace && "flex-1 min-h-0")}
-          >
-            <ScrollArea
-              className="h-full"
-              style={maxHeight ? { maxHeight } : undefined}
-            >
-              {children}
-            </ScrollArea>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+      {/* Content - only when open, fills available space and scrolls */}
+      {isOpen && <ScrollArea className="flex-1 min-h-0">{children}</ScrollArea>}
     </div>
   );
 }

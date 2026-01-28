@@ -7,7 +7,20 @@ import type { Song } from "@/types/music";
  * Helper function to convert stream to string
  * AWS SDK v3 returns Body as a ReadableStream, Blob, or Node.js Readable stream
  */
-async function streamToString(body: any): Promise<string> {
+function isNodeReadableStream(
+  value: unknown,
+): value is NodeJS.ReadableStream & {
+  on: (event: string, listener: (...args: unknown[]) => void) => void;
+} {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "on" in value &&
+    typeof (value as { on?: unknown }).on === "function"
+  );
+}
+
+async function streamToString(body: unknown): Promise<string> {
   if (!body) {
     return "";
   }
@@ -42,16 +55,16 @@ async function streamToString(body: any): Promise<string> {
   }
 
   // If it's a Node.js Readable stream (has pipe/on methods)
-  if (
-    body &&
-    typeof body === "object" &&
-    (typeof body.pipe === "function" || typeof body.on === "function")
-  ) {
-    const chunks: Buffer[] = [];
+  if (isNodeReadableStream(body)) {
+    const chunks: Uint8Array[] = [];
     return new Promise((resolve, reject) => {
-      body.on("data", (chunk: Buffer) => chunks.push(chunk));
+      body.on("data", (chunk: unknown) => {
+        if (chunk instanceof Uint8Array) {
+          chunks.push(chunk);
+        }
+      });
       body.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
-      body.on("error", reject);
+      body.on("error", (err: unknown) => reject(err));
     });
   }
 
@@ -81,9 +94,7 @@ export async function GET() {
         const response = await r2Client.send(command);
 
         if (response.Body) {
-          const bodyString = await streamToString(
-            response.Body as ReadableStream,
-          );
+          const bodyString = await streamToString(response.Body);
           const playlist: Song[] = JSON.parse(bodyString);
 
           return NextResponse.json(playlist, {
