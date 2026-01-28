@@ -79,5 +79,10 @@
   "loading": {
     "bootingSystem": "系统启动中...",
     "loadingPlaylist": "加载播放列表..."
+  },
+  "mobileNav": {
+    "lyrics": "歌词",
+    "songs": "歌曲",
+    "settings": "设置"
   }
 }
