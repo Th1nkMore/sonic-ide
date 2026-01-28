@@ -79,5 +79,10 @@
   "loading": {
     "bootingSystem": "システム起動中...",
     "loadingPlaylist": "プレイリストを読み込み中..."
+  },
+  "mobileNav": {
+    "lyrics": "歌詞",
+    "songs": "曲",
+    "settings": "設定"
   }
 }

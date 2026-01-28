@@ -24,10 +24,8 @@ export const useIDEStore = create<IDEState>((set, get) => ({
   fetchSongs: async () => {
     set({ isLoading: true });
     try {
-      // Fetch directly from public R2 URL
-      const response = await fetch(
-        "https://files.th1nkmore.space/playlist.json",
-      );
+      // Fetch from Next.js API route to avoid CORS issues
+      const response = await fetch("/api/playlist");
       if (!response.ok) {
         throw new Error(`Failed to fetch playlist: ${response.statusText}`);
       }

@@ -79,5 +79,10 @@
   "loading": {
     "bootingSystem": "Booting System...",
     "loadingPlaylist": "Loading playlist..."
+  },
+  "mobileNav": {
+    "lyrics": "Lyrics",
+    "songs": "Songs",
+    "settings": "Settings"
   }
 }

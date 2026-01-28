@@ -12,6 +12,8 @@ const AUTO_SCROLL_DELAY = 3000;
 
 type CodeEditorProps = {
   className?: string;
+  /** Compact mode shows only current and next line (for landscape/small screens) */
+  compactMode?: boolean;
 };
 
 function formatDuration(seconds: number): string {
@@ -84,7 +86,10 @@ function Line({
   );
 }
 
-export function CodeEditor({ className }: CodeEditorProps) {
+export function CodeEditor({
+  className,
+  compactMode = false,
+}: CodeEditorProps) {
   const t = useTranslations("codeEditor");
   const { currentTrackId, currentTime, seek, queue } = usePlayerStore();
 
@@ -184,20 +189,35 @@ export function CodeEditor({ className }: CodeEditorProps) {
 
     // If we have parsed LRC lines, use their content (timestamps already removed)
     if (lrcLines.length > 0) {
-      return lrcLines.map((line) => ({
+      return lrcLines.map((line, index) => ({
         content: line.content,
         time: line.time,
+        originalIndex: index,
       }));
     }
 
     // Fallback to original lyrics if no LRC lines
     const originalLines = currentTrack.lyrics.split("\n");
-    return originalLines.map((line) => ({
+    return originalLines.map((line, index) => ({
       content: line,
       time: null,
+      originalIndex: index,
     }));
   }, [currentTrack, lrcLines]);
 
+  // Filter lines for compact mode (current + next line only)
+  const visibleLines = useMemo(() => {
+    if (!compactMode || displayLines.length === 0) {
+      return displayLines;
+    }
+
+    // In compact mode, show current line and next line
+    const currentIdx = activeLineIndex >= 0 ? activeLineIndex : 0;
+    const startIdx = Math.max(0, currentIdx);
+    const endIdx = Math.min(displayLines.length, currentIdx + 2);
+
+    return displayLines.slice(startIdx, endIdx);
+  }, [compactMode, displayLines, activeLineIndex]);
   if (!currentTrack) {
     return (
       <div
@@ -249,11 +269,14 @@ export function CodeEditor({ className }: CodeEditorProps) {
       {/* Scrollable lyrics area - hidden scrollbar */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto scrollbar-none"
-        onScroll={handleScroll}
+        className={cn(
+          "flex-1 overflow-y-auto scrollbar-none",
+          compactMode && "flex flex-col justify-center",
+        )}
+        onScroll={compactMode ? undefined : handleScroll}
       >
-        <div className="py-4">
-          {displayLines.map((line, index) => {
+        <div className={cn("py-4", compactMode && "py-2")}>
+          {visibleLines.map((line) => {
             // Check if this line corresponds to the active LRC line
             const isActive =
               line.time !== null &&
@@ -262,8 +285,8 @@ export function CodeEditor({ className }: CodeEditorProps) {
 
             return (
               <Line
-                key={`${line.time}-${index}`}
-                lineNumber={index + 1}
+                key={`${line.time}-${line.originalIndex}`}
+                lineNumber={line.originalIndex + 1}
                 content={line.content}
                 time={line.time}
                 isActive={isActive ?? false}

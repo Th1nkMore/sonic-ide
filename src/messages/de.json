@@ -79,5 +79,10 @@
   "loading": {
     "bootingSystem": "System startet...",
     "loadingPlaylist": "Wiedergabeliste wird geladen..."
+  },
+  "mobileNav": {
+    "lyrics": "Texte",
+    "songs": "Titel",
+    "settings": "Einstellungen"
   }
 }

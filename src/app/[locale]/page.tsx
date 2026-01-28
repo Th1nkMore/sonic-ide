@@ -20,6 +20,11 @@ export default function HomePage() {
           </div>
         </div>
       }
+      compactCenterEditor={
+        <div className="flex h-full flex-col overflow-hidden">
+          <CodeEditor className="h-full" compactMode />
+        </div>
+      }
       rightInspector={<InspectorPanel />}
       bottomTerminal={<TerminalPanel />}
     />

@@ -8,7 +8,10 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { GlobalAudioPlayer } from "@/components/audio/GlobalAudioPlayer";
 import { FileExplorer } from "@/components/ide/FileExplorer";
+import { MiniPlayerBar } from "@/components/ide/MiniPlayerBar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import type { MobileTab } from "@/components/layout/MobileBottomNav";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
   Sheet,
@@ -16,6 +19,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useScreenMode } from "@/lib/hooks/useScreenMode";
 import { cn } from "@/lib/utils";
 import { useIDEStore } from "@/store/useIDEStore";
 
@@ -23,40 +27,231 @@ type IDEFrameProps = {
   className?: string;
   leftSidebar: ReactNode;
   centerEditor: ReactNode;
+  /** Compact version of center editor for landscape mobile (shows fewer lyrics lines) */
+  compactCenterEditor?: ReactNode;
   rightInspector: ReactNode;
   bottomTerminal: ReactNode;
 };
+
+type LayoutProps = {
+  centerEditor: ReactNode;
+  compactCenterEditor?: ReactNode;
+  rightInspector: ReactNode;
+  bottomTerminal: ReactNode;
+  mobileTab: MobileTab;
+  onTabChange: (tab: MobileTab) => void;
+  mobileTerminalVisible: boolean;
+  onToggleMobileTerminal: () => void;
+};
+
+function MobilePortraitLayout({
+  centerEditor,
+  rightInspector,
+  bottomTerminal,
+  mobileTab,
+  onTabChange,
+  mobileTerminalVisible,
+  onToggleMobileTerminal,
+}: LayoutProps) {
+  return (
+    <div className="flex-1 overflow-hidden flex flex-col">
+      {/* Content Area - Switches based on active tab */}
+      <main className="flex-1 min-h-0 overflow-hidden bg-background">
+        {mobileTab === "lyrics" && centerEditor}
+        {mobileTab === "songs" && <FileExplorer className="h-full" />}
+        {mobileTab === "settings" && rightInspector}
+      </main>
+
+      {/* Mini Player Bar - Always visible */}
+      <MiniPlayerBar />
+
+      {/* Expandable Terminal Panel */}
+      <div
+        className={cn(
+          "bg-muted border-t border-border transition-all duration-300 ease-in-out overflow-hidden",
+          mobileTerminalVisible ? "max-h-[35vh]" : "max-h-0",
+        )}
+      >
+        <div className="h-full overflow-hidden">
+          {bottomTerminal &&
+          typeof bottomTerminal === "object" &&
+          "props" in bottomTerminal
+            ? React.cloneElement(
+                bottomTerminal as React.ReactElement<{
+                  onClose?: () => void;
+                }>,
+                {
+                  onClose: onToggleMobileTerminal,
+                },
+              )
+            : bottomTerminal}
+        </div>
+      </div>
+
+      {/* Bottom Tab Navigation */}
+      <MobileBottomNav activeTab={mobileTab} onTabChange={onTabChange} />
+    </div>
+  );
+}
+
+function MobileLandscapeLayout({
+  centerEditor,
+  compactCenterEditor,
+}: Pick<LayoutProps, "centerEditor" | "compactCenterEditor">) {
+  return (
+    <div className="flex-1 overflow-hidden flex flex-row">
+      {/* Left: File Explorer / Song List */}
+      <div className="w-[200px] shrink-0 border-r border-border overflow-hidden bg-sidebar">
+        <FileExplorer />
+      </div>
+
+      {/* Right: Compact Lyrics + Controls */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Compact Lyrics */}
+        <main className="flex-1 min-h-0 overflow-hidden bg-background">
+          {compactCenterEditor || centerEditor}
+        </main>
+
+        {/* Player Controls */}
+        <div className="shrink-0 bg-muted border-t border-border">
+          <MiniPlayerBar />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type DesktopLayoutProps = {
+  leftSidebar: ReactNode;
+  centerEditor: ReactNode;
+  rightInspector: ReactNode;
+  bottomTerminal: ReactNode;
+  terminalPanelRef: React.RefObject<PanelImperativeHandle | null>;
+  onToggleTerminal: () => void;
+  onTerminalResize: (
+    panelSize: { asPercentage: number; inPixels: number },
+    _id: string | number | undefined,
+    _prevPanelSize: { asPercentage: number; inPixels: number } | undefined,
+  ) => void;
+};
+
+function DesktopLayout({
+  leftSidebar,
+  centerEditor,
+  rightInspector,
+  bottomTerminal,
+  terminalPanelRef,
+  onToggleTerminal,
+  onTerminalResize,
+}: DesktopLayoutProps) {
+  return (
+    <Group orientation="horizontal" className="flex-1 overflow-hidden">
+      {/* Left Sidebar */}
+      <Panel
+        defaultSize="20"
+        minSize="15"
+        maxSize="40"
+        className="bg-sidebar overflow-hidden"
+      >
+        {leftSidebar}
+      </Panel>
+
+      <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
+
+      {/* Center Area - Contains Editor and Terminal vertically */}
+      <Panel
+        defaultSize="50"
+        minSize="30"
+        className="flex flex-col overflow-hidden bg-background"
+      >
+        <Group orientation="vertical" className="flex-1">
+          {/* Editor */}
+          <Panel defaultSize="70" minSize="30">
+            <div className="h-full overflow-hidden">{centerEditor}</div>
+          </Panel>
+
+          {/* Terminal Resize Handle */}
+          <Separator className="h-px bg-border hover:h-1 hover:bg-primary/50 transition-all cursor-row-resize" />
+
+          {/* Terminal - Collapsible */}
+          <Panel
+            panelRef={terminalPanelRef}
+            defaultSize="30"
+            minSize="0"
+            collapsible
+            onResize={onTerminalResize}
+            className="overflow-hidden bg-muted"
+          >
+            {bottomTerminal &&
+            typeof bottomTerminal === "object" &&
+            "props" in bottomTerminal
+              ? React.cloneElement(
+                  bottomTerminal as React.ReactElement<{
+                    onClose?: () => void;
+                  }>,
+                  {
+                    onClose: onToggleTerminal,
+                  },
+                )
+              : bottomTerminal}
+          </Panel>
+        </Group>
+      </Panel>
+
+      <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
+
+      {/* Right Inspector */}
+      <Panel
+        defaultSize="30"
+        minSize="20"
+        maxSize="45"
+        className="bg-sidebar overflow-hidden"
+      >
+        {rightInspector}
+      </Panel>
+    </Group>
+  );
+}
+
+function LoadingScreen({ message }: { message: string }) {
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="text-center">
+        <div className="mb-4 font-mono text-[14px] text-gray-400">
+          {message}
+        </div>
+        <div className="h-1 w-48 overflow-hidden rounded-full bg-gray-800">
+          <div className="h-full w-full animate-pulse bg-gray-600" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function IDEFrame({
   className,
   leftSidebar,
   centerEditor,
+  compactCenterEditor,
   rightInspector,
   bottomTerminal,
 }: IDEFrameProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTerminalVisible, setMobileTerminalVisible] = useState(true);
   const [terminalVisible, setTerminalVisible] = useState(true);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("lyrics");
   const terminalPanelRef = useRef<PanelImperativeHandle | null>(null);
   const { getActiveFile, fetchSongs, isLoading } = useIDEStore();
   const activeFile = getActiveFile();
   const t = useTranslations("loading");
+  const screenMode = useScreenMode();
+
+  const isDesktop = screenMode === "desktop";
+  const isLandscape = screenMode === "mobile-landscape";
 
   useEffect(() => {
     fetchSongs();
   }, [fetchSongs]);
-
-  useEffect(() => {
-    // Only set desktop state on client side to avoid SSR mismatch
-    const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 768); // md breakpoint (768px)
-    };
-
-    checkDesktop();
-    window.addEventListener("resize", checkDesktop);
-    return () => window.removeEventListener("resize", checkDesktop);
-  }, []);
 
   const handleToggleTerminal = () => {
     if (!terminalPanelRef.current) return;
@@ -83,18 +278,7 @@ export function IDEFrame({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="mb-4 font-mono text-[14px] text-gray-400">
-            {t("bootingSystem")}
-          </div>
-          <div className="h-1 w-48 overflow-hidden rounded-full bg-gray-800">
-            <div className="h-full w-full animate-pulse bg-gray-600" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message={t("bootingSystem")} />;
   }
 
   return (
@@ -161,107 +345,38 @@ export function IDEFrame({
           </div>
         </header>
 
-        {/* Mobile Layout - Only render on mobile */}
-        {!isDesktop && (
-          <div className="flex-1 overflow-hidden flex flex-col relative">
-            <main className="flex-1 min-h-0 overflow-hidden bg-background">
-              {centerEditor}
-            </main>
-            {/* Fixed Bottom Panel - Replaces Sheet */}
-            <div
-              className={cn(
-                "absolute bottom-0 left-0 right-0 z-50 bg-muted border-t border-border transition-transform duration-300 ease-in-out",
-                mobileTerminalVisible ? "translate-y-0" : "translate-y-full",
-              )}
-              style={{
-                maxHeight: "40vh",
-              }}
-            >
-              <div className="h-full overflow-hidden">
-                {bottomTerminal &&
-                typeof bottomTerminal === "object" &&
-                "props" in bottomTerminal
-                  ? React.cloneElement(
-                      bottomTerminal as React.ReactElement<{
-                        onClose?: () => void;
-                      }>,
-                      {
-                        onClose: handleToggleMobileTerminal,
-                      },
-                    )
-                  : bottomTerminal}
-              </div>
-            </div>
-          </div>
+        {/* Mobile Portrait Layout */}
+        {!(isDesktop || isLandscape) && (
+          <MobilePortraitLayout
+            centerEditor={centerEditor}
+            rightInspector={rightInspector}
+            bottomTerminal={bottomTerminal}
+            mobileTab={mobileTab}
+            onTabChange={setMobileTab}
+            mobileTerminalVisible={mobileTerminalVisible}
+            onToggleMobileTerminal={handleToggleMobileTerminal}
+          />
+        )}
+
+        {/* Mobile Landscape Layout - Two column */}
+        {!isDesktop && isLandscape && (
+          <MobileLandscapeLayout
+            centerEditor={centerEditor}
+            compactCenterEditor={compactCenterEditor}
+          />
         )}
 
         {/* Desktop Layout - Only render on desktop */}
         {isDesktop && (
-          <Group orientation="horizontal" className="flex-1 overflow-hidden">
-            {/* Left Sidebar */}
-            <Panel
-              defaultSize="20"
-              minSize="15"
-              maxSize="40"
-              className="bg-sidebar overflow-hidden"
-            >
-              {leftSidebar}
-            </Panel>
-
-            <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
-
-            {/* Center Area - Contains Editor and Terminal vertically */}
-            <Panel
-              defaultSize="50"
-              minSize="30"
-              className="flex flex-col overflow-hidden bg-background"
-            >
-              <Group orientation="vertical" className="flex-1">
-                {/* Editor */}
-                <Panel defaultSize="70" minSize="30">
-                  <div className="h-full overflow-hidden">{centerEditor}</div>
-                </Panel>
-
-                {/* Terminal Resize Handle */}
-                <Separator className="h-px bg-border hover:h-1 hover:bg-primary/50 transition-all cursor-row-resize" />
-
-                {/* Terminal - Collapsible */}
-                <Panel
-                  panelRef={terminalPanelRef}
-                  defaultSize="30"
-                  minSize="0"
-                  collapsible
-                  onResize={handleTerminalResize}
-                  className="overflow-hidden bg-muted"
-                >
-                  {bottomTerminal &&
-                  typeof bottomTerminal === "object" &&
-                  "props" in bottomTerminal
-                    ? React.cloneElement(
-                        bottomTerminal as React.ReactElement<{
-                          onClose?: () => void;
-                        }>,
-                        {
-                          onClose: handleToggleTerminal,
-                        },
-                      )
-                    : bottomTerminal}
-                </Panel>
-              </Group>
-            </Panel>
-
-            <Separator className="w-px bg-border hover:w-1 hover:bg-primary/50 transition-all cursor-col-resize" />
-
-            {/* Right Inspector */}
-            <Panel
-              defaultSize="30"
-              minSize="20"
-              maxSize="45"
-              className="bg-sidebar overflow-hidden"
-            >
-              {rightInspector}
-            </Panel>
-          </Group>
+          <DesktopLayout
+            leftSidebar={leftSidebar}
+            centerEditor={centerEditor}
+            rightInspector={rightInspector}
+            bottomTerminal={bottomTerminal}
+            terminalPanelRef={terminalPanelRef}
+            onToggleTerminal={handleToggleTerminal}
+            onTerminalResize={handleTerminalResize}
+          />
         )}
       </div>
     </>
